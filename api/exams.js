@@ -36,7 +36,7 @@ const examSchema = new mongoose.Schema({
   term: { type: String, required: true },
   subject: { type: String, required: true },
   year: { type: String, required: true },
-  questions: [
+  exam: [
     {
       question: { type: String, required: true },
       choices: [{ type: String, required: true }],
@@ -81,24 +81,24 @@ app.get('/exams/:id', async (req, res) => {
 
 // POST route to add a new exam
 app.post('/exams', async (req, res) => {
-  const { division, level, term, subject, year, questions } = req.body;
+  const { division, level, term, subject, year, exam } = req.body;
 
   // Validate required fields
-  if (!division || !level || !term || !subject || !year || !questions) {
+  if (!division || !level || !term || !subject || !year || !exam) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  const exam = new Exam({
+  const newExam = new Exam({
     division,
     level,
     term,
     subject,
     year,
-    questions,
+    exam,
   });
 
   try {
-    await exam.save();
+    await newExam.save();
     res.status(201).json({ message: 'Exam created successfully' });
   } catch (err) {
     res
