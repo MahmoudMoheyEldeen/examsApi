@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 
-// Create an Express application
 const app = express();
 
 // CORS configuration
@@ -16,16 +15,13 @@ const corsOptions = {
   credentials: true,
 };
 
-// Apply CORS with specific options
 app.use(cors(corsOptions));
-
-// Middleware to handle JSON data
 app.use(express.json());
 
 // Serve static files (uploaded images)
 app.use('/uploads', express.static('public/uploads'));
 
-// MongoDB connection using environment variable for the URI
+// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB Atlas'))
@@ -34,7 +30,7 @@ mongoose
     process.exit(1);
   });
 
-// Define the Exam Schema with validation
+// Define the Exam Schema
 const examSchema = new mongoose.Schema({
   division: { type: String, required: true },
   level: { type: String, required: true },
@@ -45,29 +41,27 @@ const examSchema = new mongoose.Schema({
     {
       question: { type: String, required: true },
       choices: [{ type: String, required: true }],
-      image: { type: String }, // Image path
+      image: { type: String }, // Optional image path
     },
   ],
 });
 
-// Create the Exam model from the schema
 const Exam = mongoose.model('Exam', examSchema, 'exams');
 
-// Configure storage for Multer
+// Configure Multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'public/uploads'); // Directory where files will be saved
+    cb(null, 'public/uploads');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique file name
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
-// Initialize Multer with storage configuration
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const fileTypes = /jpeg|jpg|png|gif/;
     const extname = fileTypes.test(
@@ -82,14 +76,12 @@ const upload = multer({
   },
 });
 
-// API Routes
-
 // Root route
 app.get('/', (req, res) => {
   res.send('Exams API is running');
 });
 
-// GET route to retrieve all exams
+// GET all exams
 app.get('/exams', async (req, res) => {
   try {
     const exams = await Exam.find();
@@ -101,7 +93,7 @@ app.get('/exams', async (req, res) => {
   }
 });
 
-// GET route to retrieve a specific exam by ID
+// GET a specific exam by ID
 app.get('/exams/:id', async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.id);
@@ -114,8 +106,8 @@ app.get('/exams/:id', async (req, res) => {
   }
 });
 
-// POST route to add a new exam with image upload
-app.post('/exams', upload.single('image'), async (req, res) => {
+// POST route to add a new exam with image uploads
+app.post('/exams', upload.array('images', 10), async (req, res) => {
   const { division, level, term, subject, year, exam } = req.body;
 
   if (!division || !level || !term || !subject || !year || !exam) {
@@ -123,9 +115,9 @@ app.post('/exams', upload.single('image'), async (req, res) => {
   }
 
   try {
-    const examArray = JSON.parse(exam).map((item) => {
-      if (req.file && item.question) {
-        item.image = `/uploads/${req.file.filename}`;
+    const examArray = JSON.parse(exam).map((item, index) => {
+      if (req.files[index]) {
+        item.image = `/uploads/${req.files[index].filename}`;
       }
       return item;
     });
