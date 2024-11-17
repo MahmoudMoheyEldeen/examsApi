@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-// Create an Express application
 const app = express();
 
 // CORS configuration
@@ -14,11 +13,11 @@ const corsOptions = {
   credentials: true,
 };
 
-// Apply CORS with specific options
 app.use(cors(corsOptions));
-
-// Middleware to handle JSON data
 app.use(express.json());
+
+// Serve static files (for images or other assets)
+app.use('/assets', express.static('public/assets'));
 
 // MongoDB connection using environment variable for the URI
 mongoose
@@ -40,14 +39,12 @@ const examSchema = new mongoose.Schema({
     {
       question: { type: String, required: true },
       choices: [{ type: String, required: true }],
+      image: { type: String }, // Optional local image path
     },
   ],
 });
 
-// Create the Exam model from the schema
 const Exam = mongoose.model('Exam', examSchema, 'exams');
-
-// API Routes
 
 // Root route
 app.get('/', (req, res) => {
@@ -83,7 +80,6 @@ app.get('/exams/:id', async (req, res) => {
 app.post('/exams', async (req, res) => {
   const { division, level, term, subject, year, exam } = req.body;
 
-  // Validate required fields
   if (!division || !level || !term || !subject || !year || !exam) {
     return res.status(400).json({ message: 'All fields are required' });
   }
