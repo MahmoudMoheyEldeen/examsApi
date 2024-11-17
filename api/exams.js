@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const path = require('path');
 
 // Create an Express application
 const app = express();
@@ -19,6 +21,9 @@ app.use(cors(corsOptions));
 
 // Middleware to handle JSON data
 app.use(express.json());
+
+// Serve static files (uploaded images)
+app.use('/uploads', express.static('public/uploads'));
 
 // MongoDB connection using environment variable for the URI
 mongoose
@@ -40,12 +45,42 @@ const examSchema = new mongoose.Schema({
     {
       question: { type: String, required: true },
       choices: [{ type: String, required: true }],
+      image: { type: String }, // Image path
     },
   ],
 });
 
 // Create the Exam model from the schema
 const Exam = mongoose.model('Exam', examSchema, 'exams');
+
+// Configure storage for Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/uploads'); // Directory where files will be saved
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique file name
+  },
+});
+
+// Initialize Multer with storage configuration
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5 MB
+  fileFilter: (req, file, cb) => {
+    const fileTypes = /jpeg|jpg|png|gif/;
+    const extname = fileTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    const mimeType = fileTypes.test(file.mimetype);
+    if (extname && mimeType) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'));
+    }
+  },
+});
 
 // API Routes
 
@@ -79,27 +114,35 @@ app.get('/exams/:id', async (req, res) => {
   }
 });
 
-// POST route to add a new exam
-app.post('/exams', async (req, res) => {
+// POST route to add a new exam with image upload
+app.post('/exams', upload.single('image'), async (req, res) => {
   const { division, level, term, subject, year, exam } = req.body;
 
-  // Validate required fields
   if (!division || !level || !term || !subject || !year || !exam) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  const newExam = new Exam({
-    division,
-    level,
-    term,
-    subject,
-    year,
-    exam,
-  });
-
   try {
+    const examArray = JSON.parse(exam).map((item) => {
+      if (req.file && item.question) {
+        item.image = `/uploads/${req.file.filename}`;
+      }
+      return item;
+    });
+
+    const newExam = new Exam({
+      division,
+      level,
+      term,
+      subject,
+      year,
+      exam: examArray,
+    });
+
     await newExam.save();
-    res.status(201).json({ message: 'Exam created successfully' });
+    res
+      .status(201)
+      .json({ message: 'Exam created successfully', exam: newExam });
   } catch (err) {
     res
       .status(400)
