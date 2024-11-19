@@ -134,6 +134,48 @@ app.delete('/exams/:id', async (req, res) => {
   }
 });
 
+// POST route to add a new question to a specific exam
+app.post('/exams/add-question', async (req, res) => {
+  const { division, level, term, subject, year, question, choices, image } =
+    req.body;
+
+  // Validate the required fields
+  if (
+    !division ||
+    !level ||
+    !term ||
+    !subject ||
+    !year ||
+    !question ||
+    !choices
+  ) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    // Find the exam document that matches the criteria
+    const exam = await Exam.findOne({ division, level, term, subject, year });
+
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    // Add the new question to the `exam` array
+    exam.exam.push({ question, choices, image }); // `image` is optional
+
+    // Save the updated document
+    await exam.save();
+
+    res
+      .status(200)
+      .json({ message: 'Question added successfully', updatedExam: exam });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: 'Failed to add question', error: err.message });
+  }
+});
+
 // Set the port dynamically or fallback to 3000
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
