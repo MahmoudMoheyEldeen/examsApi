@@ -63,10 +63,10 @@ app.get('/exams', async (req, res) => {
   }
 });
 
-// GET route to retrieve a specific exam by ID
-app.get('/exams/:id', async (req, res) => {
+// GET route to retrieve a specific exam by _id
+app.get('/exams/:_id', async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id || req.params._id);
+    const exam = await Exam.findOne({ _id: req.params._id }); // Use _id explicitly
     if (!exam) return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(exam);
   } catch (err) {
@@ -95,7 +95,7 @@ app.post('/exams', async (req, res) => {
 
   try {
     await newExam.save();
-    res.status(201).json({ message: 'Exam created successfully' });
+    res.status(201).json({ message: 'Exam created successfully', newExam });
   } catch (err) {
     res
       .status(400)
@@ -103,13 +103,17 @@ app.post('/exams', async (req, res) => {
   }
 });
 
-// PUT route to update an exam by ID
-app.put('/exams/:id', async (req, res) => {
+// PUT route to update an exam by _id
+app.put('/exams/:_id', async (req, res) => {
   try {
-    const updatedExam = await Exam.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedExam = await Exam.findOneAndUpdate(
+      { _id: req.params._id }, // Use _id explicitly
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
     if (!updatedExam)
       return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(updatedExam);
@@ -120,10 +124,10 @@ app.put('/exams/:id', async (req, res) => {
   }
 });
 
-// DELETE route to remove an exam by ID
-app.delete('/exams/:id', async (req, res) => {
+// DELETE route to remove an exam by _id
+app.delete('/exams/:_id', async (req, res) => {
   try {
-    const deletedExam = await Exam.findByIdAndDelete(req.params.id);
+    const deletedExam = await Exam.findOneAndDelete({ _id: req.params._id }); // Use _id explicitly
     if (!deletedExam)
       return res.status(404).json({ message: 'Exam not found' });
     res.status(204).send(); // No content response on successful deletion
