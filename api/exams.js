@@ -66,7 +66,7 @@ app.get('/exams', async (req, res) => {
 // GET route to retrieve a specific exam by ID
 app.get('/exams/:id', async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
+    const exam = await Exam.findById(req.params.id || req.params._id);
     if (!exam) return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(exam);
   } catch (err) {
