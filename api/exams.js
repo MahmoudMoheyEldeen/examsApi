@@ -37,6 +37,7 @@ const examSchema = new mongoose.Schema({
   year: { type: String, required: true },
   exam: [
     {
+      _id: { type: String, required: true }, // Each question has its own unique _id
       question: { type: String, required: true },
       choices: [{ type: String, required: true }],
       image: { type: String }, // Optional local image path
@@ -63,11 +64,10 @@ app.get('/exams', async (req, res) => {
   }
 });
 
-// GET route to retrieve a specific exam by _id
+// GET route to retrieve a specific exam by _id (as a string)
 app.get('/exams/:_id', async (req, res) => {
   try {
-    const examId = new mongoose.Types.ObjectId(req.params._id); // Convert _id to ObjectId
-    const exam = await Exam.findOne({ _id: examId });
+    const exam = await Exam.findOne({ _id: req.params._id }); // Query by string
     if (!exam) return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(exam);
   } catch (err) {
@@ -104,14 +104,17 @@ app.post('/exams', async (req, res) => {
   }
 });
 
-// PUT route to update an exam by _id
+// PUT route to update an exam by _id (as a string)
 app.put('/exams/:_id', async (req, res) => {
   try {
-    const examId = new mongoose.Types.ObjectId(req.params._id); // Convert _id to ObjectId
-    const updatedExam = await Exam.findOneAndUpdate({ _id: examId }, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedExam = await Exam.findOneAndUpdate(
+      { _id: req.params._id }, // Match _id as a string
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
     if (!updatedExam)
       return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(updatedExam);
@@ -122,11 +125,10 @@ app.put('/exams/:_id', async (req, res) => {
   }
 });
 
-// DELETE route to remove an exam by _id
+// DELETE route to remove an exam by _id (as a string)
 app.delete('/exams/:_id', async (req, res) => {
   try {
-    const examId = new mongoose.Types.ObjectId(req.params._id); // Convert _id to ObjectId
-    const deletedExam = await Exam.findOneAndDelete({ _id: examId });
+    const deletedExam = await Exam.findOneAndDelete({ _id: req.params._id }); // Match _id as a string
     if (!deletedExam)
       return res.status(404).json({ message: 'Exam not found' });
     res.status(204).send(); // No content response on successful deletion
