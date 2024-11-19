@@ -37,7 +37,6 @@ const examSchema = new mongoose.Schema({
   year: { type: String, required: true },
   exam: [
     {
-      _id: { type: String, required: true }, // Each question has its own unique _id
       question: { type: String, required: true },
       choices: [{ type: String, required: true }],
       image: { type: String }, // Optional local image path
@@ -64,10 +63,10 @@ app.get('/exams', async (req, res) => {
   }
 });
 
-// GET route to retrieve a specific exam by _id (as a string)
-app.get('/exams/:_id', async (req, res) => {
+// GET route to retrieve a specific exam by ID
+app.get('/exams/:id', async (req, res) => {
   try {
-    const exam = await Exam.findOne({ _id: req.params._id }); // Query by string
+    const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(exam);
   } catch (err) {
@@ -96,7 +95,7 @@ app.post('/exams', async (req, res) => {
 
   try {
     await newExam.save();
-    res.status(201).json({ message: 'Exam created successfully', newExam });
+    res.status(201).json({ message: 'Exam created successfully' });
   } catch (err) {
     res
       .status(400)
@@ -104,17 +103,13 @@ app.post('/exams', async (req, res) => {
   }
 });
 
-// PUT route to update an exam by _id (as a string)
-app.put('/exams/:_id', async (req, res) => {
+// PUT route to update an exam by ID
+app.put('/exams/:id', async (req, res) => {
   try {
-    const updatedExam = await Exam.findOneAndUpdate(
-      { _id: req.params._id }, // Match _id as a string
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const updatedExam = await Exam.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
     if (!updatedExam)
       return res.status(404).json({ message: 'Exam not found' });
     res.status(200).json(updatedExam);
@@ -125,10 +120,10 @@ app.put('/exams/:_id', async (req, res) => {
   }
 });
 
-// DELETE route to remove an exam by _id (as a string)
-app.delete('/exams/:_id', async (req, res) => {
+// DELETE route to remove an exam by ID
+app.delete('/exams/:id', async (req, res) => {
   try {
-    const deletedExam = await Exam.findOneAndDelete({ _id: req.params._id }); // Match _id as a string
+    const deletedExam = await Exam.findByIdAndDelete(req.params.id);
     if (!deletedExam)
       return res.status(404).json({ message: 'Exam not found' });
     res.status(204).send(); // No content response on successful deletion
