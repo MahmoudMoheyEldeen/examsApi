@@ -16,9 +16,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Serve static files (for images or other assets)
-app.use('/assets', express.static('public/assets'));
-
 // MongoDB connection using environment variable for the URI
 mongoose
   .connect(process.env.MONGO_URI)
@@ -38,7 +35,13 @@ const examSchema = new mongoose.Schema({
   exam: [
     {
       question: { type: String, required: true },
-      choices: [{ type: String, required: true }],
+      choices: {
+        type: [String],
+        validate: [
+          (val) => val.length >= 2,
+          'At least two choices are required',
+        ],
+      },
       image: { type: String }, // Optional local image path
     },
   ],
@@ -100,6 +103,43 @@ app.post('/exams', async (req, res) => {
     res
       .status(400)
       .json({ message: 'Failed to create exam', error: err.message });
+  }
+});
+
+// PUT route to add a question to the exam array based on criteria
+app.put('/exams/add-question', async (req, res) => {
+  const { division, level, term, subject, year, question, choices } = req.body;
+
+  if (
+    !division ||
+    !level ||
+    !term ||
+    !subject ||
+    !year ||
+    !question ||
+    !choices
+  ) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    const updatedExam = await Exam.findOneAndUpdate(
+      { division, level, term, subject, year }, // Match the document
+      { $push: { exam: { question, choices } } }, // Push the new question and choices
+      { new: true, runValidators: true } // Return the updated document
+    );
+
+    if (!updatedExam) {
+      return res.status(404).json({ message: 'Exam document not found' });
+    }
+
+    res
+      .status(200)
+      .json({ message: 'Question added successfully', updatedExam });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: 'Failed to add question', error: err.message });
   }
 });
 
