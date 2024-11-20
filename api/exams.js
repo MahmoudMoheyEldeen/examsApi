@@ -34,6 +34,7 @@ const examSchema = new mongoose.Schema({
   year: { type: String, required: true },
   exam: [
     {
+      _id: false, // Disable automatic ObjectId generation for subdocuments
       question: { type: String, required: true },
       choices: {
         type: [String],
@@ -159,13 +160,13 @@ app.delete('/exams/remove-question', async (req, res) => {
   }
 
   try {
-    // Find the document
+    // Find the document matching the criteria
     const exam = await Exam.findOne({ division, level, term, subject, year });
     if (!exam) {
       return res.status(404).json({ message: 'Exam document not found' });
     }
 
-    // Check if the index is valid
+    // Validate the index
     if (index < 0 || index >= exam.exam.length) {
       return res.status(400).json({ message: 'Invalid question index' });
     }
