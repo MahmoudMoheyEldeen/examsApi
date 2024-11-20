@@ -143,6 +143,47 @@ app.put('/exams/add-question', async (req, res) => {
   }
 });
 
+// DELETE route to remove a question from the exam array by index
+app.delete('/exams/remove-question', async (req, res) => {
+  const { division, level, term, subject, year, index } = req.body;
+
+  if (
+    !division ||
+    !level ||
+    !term ||
+    !subject ||
+    !year ||
+    index === undefined
+  ) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  try {
+    // Find the document
+    const exam = await Exam.findOne({ division, level, term, subject, year });
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam document not found' });
+    }
+
+    // Check if the index is valid
+    if (index < 0 || index >= exam.exam.length) {
+      return res.status(400).json({ message: 'Invalid question index' });
+    }
+
+    // Remove the question at the specified index
+    exam.exam.splice(index, 1);
+
+    // Save the updated document
+    await exam.save();
+
+    res.status(200).json({ message: 'Question removed successfully', exam });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: 'Failed to remove question', error: err.message });
+  }
+});
+
 // PUT route to update an exam by ID
 app.put('/exams/:id', async (req, res) => {
   try {
