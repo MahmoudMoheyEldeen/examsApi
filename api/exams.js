@@ -5,27 +5,25 @@ const mongoose = require('mongoose');
 
 const app = express();
 
-// CORS configuration
-const corsOptions = {
-  origin: ['http://localhost:4200', 'https://your-angular-app-url'], // Replace with your Angular app URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-};
+// Apply unrestricted CORS
+app.use(cors()); // Allow all origins
 
-app.use(cors(corsOptions));
+// Middleware to handle JSON data
 app.use(express.json());
 
-// MongoDB connection using environment variable for the URI
+// MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch((err) => {
     console.error('Failed to connect to MongoDB:', err.message);
     process.exit(1);
   });
 
-// Define the Exam Schema with validation
+// Define the Exam Schema
 const examSchema = new mongoose.Schema({
   division: { type: String, required: true },
   level: { type: String, required: true },
@@ -50,12 +48,14 @@ const examSchema = new mongoose.Schema({
 
 const Exam = mongoose.model('Exam', examSchema, 'exams');
 
+// API Routes
+
 // Root route
 app.get('/', (req, res) => {
   res.send('Exams API is running');
 });
 
-// GET route to retrieve all exams
+// GET: Retrieve all exams
 app.get('/exams', async (req, res) => {
   try {
     const exams = await Exam.find();
@@ -67,7 +67,7 @@ app.get('/exams', async (req, res) => {
   }
 });
 
-// GET route to retrieve a specific exam by ID
+// GET: Retrieve a specific exam by ID
 app.get('/exams/:id', async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.id);
@@ -80,7 +80,7 @@ app.get('/exams/:id', async (req, res) => {
   }
 });
 
-// POST route to add a new exam
+// POST: Add a new exam
 app.post('/exams', async (req, res) => {
   const { division, level, term, subject, year, exam } = req.body;
 
@@ -107,7 +107,7 @@ app.post('/exams', async (req, res) => {
   }
 });
 
-// PUT route to add a question to the exam array based on criteria
+// PUT: Add a question to an existing exam
 app.put('/exams/add-question', async (req, res) => {
   const { division, level, term, subject, year, question, choices } = req.body;
 
@@ -125,14 +125,13 @@ app.put('/exams/add-question', async (req, res) => {
 
   try {
     const updatedExam = await Exam.findOneAndUpdate(
-      { division, level, term, subject, year }, // Match the document
-      { $push: { exam: { question, choices } } }, // Push the new question and choices
-      { new: true, runValidators: true } // Return the updated document
+      { division, level, term, subject, year },
+      { $push: { exam: { question, choices } } },
+      { new: true, runValidators: true }
     );
 
-    if (!updatedExam) {
+    if (!updatedExam)
       return res.status(404).json({ message: 'Exam document not found' });
-    }
 
     res
       .status(200)
@@ -144,7 +143,7 @@ app.put('/exams/add-question', async (req, res) => {
   }
 });
 
-// DELETE route to remove a question from the exam array by index
+// DELETE: Remove a question by index
 app.delete('/exams/remove-question', async (req, res) => {
   const { division, level, term, subject, year, index } = req.body;
 
@@ -160,21 +159,15 @@ app.delete('/exams/remove-question', async (req, res) => {
   }
 
   try {
-    // Find the document matching the criteria
     const exam = await Exam.findOne({ division, level, term, subject, year });
-    if (!exam) {
+    if (!exam)
       return res.status(404).json({ message: 'Exam document not found' });
-    }
 
-    // Validate the index
     if (index < 0 || index >= exam.exam.length) {
       return res.status(400).json({ message: 'Invalid question index' });
     }
 
-    // Remove the question at the specified index
     exam.exam.splice(index, 1);
-
-    // Save the updated document
     await exam.save();
 
     res.status(200).json({ message: 'Question removed successfully', exam });
@@ -185,7 +178,7 @@ app.delete('/exams/remove-question', async (req, res) => {
   }
 });
 
-// PUT route to update an exam by ID
+// PUT: Update an exam by ID
 app.put('/exams/:id', async (req, res) => {
   try {
     const updatedExam = await Exam.findByIdAndUpdate(req.params.id, req.body, {
@@ -202,13 +195,13 @@ app.put('/exams/:id', async (req, res) => {
   }
 });
 
-// DELETE route to remove an exam by ID
+// DELETE: Remove an exam by ID
 app.delete('/exams/:id', async (req, res) => {
   try {
     const deletedExam = await Exam.findByIdAndDelete(req.params.id);
     if (!deletedExam)
       return res.status(404).json({ message: 'Exam not found' });
-    res.status(204).send(); // No content response on successful deletion
+    res.status(204).send();
   } catch (err) {
     res
       .status(500)
@@ -216,7 +209,7 @@ app.delete('/exams/:id', async (req, res) => {
   }
 });
 
-// Set the port dynamically or fallback to 3000
+// Set the port dynamically
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
